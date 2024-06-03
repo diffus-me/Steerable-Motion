@@ -1318,13 +1318,16 @@ class PrepImageForClipVisionImport:
 
 class IPAdapterSaveEmbeds:
     def __init__(self):
-        self.output_dir = folder_paths.get_output_directory()
+        pass
 
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {
             "embeds": ("EMBEDS",),
             "filename_prefix": ("STRING", {"default": "IP_embeds"})
+            },
+            "hidden": {
+                "user_hash": "USER_HASH",
             },
         }
 
@@ -1333,8 +1336,9 @@ class IPAdapterSaveEmbeds:
     OUTPUT_NODE = True
     CATEGORY = "ipadapter/embeds"
 
-    def save(self, embeds, filename_prefix):
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir)
+    def save(self, embeds, filename_prefix, user_hash):
+        output_dir = folder_paths.get_output_directory(user_hash)
+        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, output_dir)
         file = f"{filename}_{counter:05}.ipadpt"
         file = os.path.join(full_output_folder, file)
 
@@ -1343,17 +1347,18 @@ class IPAdapterSaveEmbeds:
 
 class IPAdapterLoadEmbeds:
     @classmethod
-    def INPUT_TYPES(s):
-        input_dir = folder_paths.get_input_directory()
+    def INPUT_TYPES(s, user_hash: str):
+        input_dir = folder_paths.get_input_directory(user_hash)
         files = [os.path.relpath(os.path.join(root, file), input_dir) for root, dirs, files in os.walk(input_dir) for file in files if file.endswith('.ipadpt')]
-        return {"required": {"embeds": [sorted(files), ]}, }
+        return {"required": {"embeds": [sorted(files), ]}, 
+                "hidden": { "user_hash": "USER_HASH"}}
 
     RETURN_TYPES = ("EMBEDS", )
     FUNCTION = "load"
     CATEGORY = "ipadapter/embeds"
 
-    def load(self, embeds):
-        path = folder_paths.get_annotated_filepath(embeds)
+    def load(self, embeds, user_hash):
+        path = folder_paths.get_annotated_filepath(embeds, user_hash)
         return (torch.load(path).cpu(), )
 
 defaultValue="""0:0,
