@@ -1,6 +1,8 @@
 import torch
 import os
 import math
+
+import execution_context
 import folder_paths
 
 import comfy.model_management as model_management
@@ -438,6 +440,9 @@ class IPAdapterUnifiedLoader:
         },
         "optional": {
             "ipadapter": ("IPADAPTER", ),
+        },
+        "hidden": {
+            "context": "EXECUTION_CONTEXT"
         }}
 
     RETURN_TYPES = ("MODEL", "IPADAPTER", )
@@ -445,13 +450,13 @@ class IPAdapterUnifiedLoader:
     FUNCTION = "load_models"
     CATEGORY = "ipadapter"
 
-    def load_models(self, model, preset, lora_strength=0.0, provider="CPU", ipadapter=None):
+    def load_models(self, model, preset, lora_strength=0.0, provider="CPU", ipadapter=None, context: execution_context.ExecutionContext = None):
         pipeline = { "clipvision": { 'file': None, 'model': None }, "ipadapter": { 'file': None, 'model': None }, "insightface": { 'provider': None, 'model': None } }
         if ipadapter is not None:
             pipeline = ipadapter
 
         # 1. Load the clipvision model
-        clipvision_file = get_clipvision_file(preset)
+        clipvision_file = get_clipvision_file(context, preset)
         if clipvision_file is None:
             raise Exception("ClipVision model not found.")
 
@@ -465,7 +470,7 @@ class IPAdapterUnifiedLoader:
 
         # 2. Load the ipadapter model
         is_sdxl = isinstance(model.model, (comfy.model_base.SDXL, comfy.model_base.SDXLRefiner, comfy.model_base.SDXL_instructpix2pix))
-        ipadapter_file, is_insightface, lora_pattern = get_ipadapter_file(preset, is_sdxl)
+        ipadapter_file, is_insightface, lora_pattern = get_ipadapter_file(context, preset, is_sdxl)
         if ipadapter_file is None:
             raise Exception("IPAdapter model not found.")
 
@@ -479,7 +484,7 @@ class IPAdapterUnifiedLoader:
 
         # 3. Load the lora model if needed
         if lora_pattern is not None:
-            lora_file = get_lora_file(lora_pattern)
+            lora_file = get_lora_file(context, lora_pattern)
             lora_model = None
             if lora_file is None:
                 raise Exception("LoRA model not found.")
@@ -542,15 +547,17 @@ class IPAdapterUnifiedLoaderCommunity(IPAdapterUnifiedLoader):
 
 class IPAdapterModelLoader:
     @classmethod
-    def INPUT_TYPES(s):
-        return {"required": { "ipadapter_file": (folder_paths.get_filename_list("ipadapter"), )}}
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
+        return {"required": { "ipadapter_file": (folder_paths.get_filename_list(context, "ipadapter"), )},
+                "hidden": { "context": "EXECUTION_CONTEXT" }
+                }
 
     RETURN_TYPES = ("IPADAPTER",)
     FUNCTION = "load_ipadapter_model"
     CATEGORY = "ipadapter/loaders"
 
-    def load_ipadapter_model(self, ipadapter_file):
-        ipadapter_file = folder_paths.get_full_path("ipadapter", ipadapter_file)
+    def load_ipadapter_model(self, ipadapter_file, context: execution_context.ExecutionContext):
+        ipadapter_file = folder_paths.get_full_path(context, "ipadapter", ipadapter_file)
         return (ipadapter_model_loader(ipadapter_file),)
 
 class IPAdapterInsightFaceLoader:

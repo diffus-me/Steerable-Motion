@@ -1,6 +1,8 @@
 import re
 import torch
 import os
+
+import execution_context
 import folder_paths
 from comfy.clip_vision import clip_preprocess, Output
 import comfy.utils
@@ -10,9 +12,9 @@ try:
 except ImportError:
     import torchvision.transforms as T
 
-def get_clipvision_file(preset):
+def get_clipvision_file(context: execution_context.ExecutionContext, preset):
     preset = preset.lower()
-    clipvision_list = folder_paths.get_filename_list("clip_vision")
+    clipvision_list = folder_paths.get_filename_list(context, "clip_vision")
 
     if preset.startswith("vit-g"):
         pattern = r'(ViT.bigG.14.*39B.b160k|ipadapter.*sdxl|sdxl.*model\.(bin|safetensors))'
@@ -20,13 +22,13 @@ def get_clipvision_file(preset):
         pattern = r'(ViT.H.14.*s32B.b79K|ipadapter.*sd15|sd1.?5.*model\.(bin|safetensors))'
     clipvision_file = [e for e in clipvision_list if re.search(pattern, e, re.IGNORECASE)]
 
-    clipvision_file = folder_paths.get_full_path("clip_vision", clipvision_file[0]) if clipvision_file else None
+    clipvision_file = folder_paths.get_full_path(context, "clip_vision", clipvision_file[0]) if clipvision_file else None
 
     return clipvision_file
 
-def get_ipadapter_file(preset, is_sdxl):
+def get_ipadapter_file(context: execution_context.ExecutionContext, preset, is_sdxl):
     preset = preset.lower()
-    ipadapter_list = folder_paths.get_filename_list("ipadapter")
+    ipadapter_list = folder_paths.get_filename_list(context, "ipadapter")
     is_insightface = False
     lora_pattern = None
 
@@ -108,14 +110,14 @@ def get_ipadapter_file(preset, is_sdxl):
         raise Exception(f"invalid type '{preset}'")
 
     ipadapter_file = [e for e in ipadapter_list if re.search(pattern, e, re.IGNORECASE)]
-    ipadapter_file = folder_paths.get_full_path("ipadapter", ipadapter_file[0]) if ipadapter_file else None
+    ipadapter_file = folder_paths.get_full_path(context, "ipadapter", ipadapter_file[0]) if ipadapter_file else None
 
     return ipadapter_file, is_insightface, lora_pattern
 
-def get_lora_file(pattern):
-    lora_list = folder_paths.get_filename_list("loras")
+def get_lora_file(context: execution_context.ExecutionContext, pattern):
+    lora_list = folder_paths.get_filename_list(context, "loras")
     lora_file = [e for e in lora_list if re.search(pattern, e, re.IGNORECASE)]
-    lora_file = folder_paths.get_full_path("loras", lora_file[0]) if lora_file else None
+    lora_file = folder_paths.get_full_path(context, "loras", lora_file[0]) if lora_file else None
 
     return lora_file
 
