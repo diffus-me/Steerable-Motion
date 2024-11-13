@@ -10,6 +10,7 @@ from node_helpers import conditioning_set_values
 from comfy.clip_vision import load as load_clip_vision
 from comfy.sd import load_lora_for_models
 import comfy.utils
+import comfy.model_base
 
 import torch.nn as nn
 from PIL import Image
